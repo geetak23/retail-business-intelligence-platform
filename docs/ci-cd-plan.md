@@ -1,98 +1,114 @@
-# CI/CD Plan
+# CI/CD Strategy and Deployment Plan
 
-**Status: In Progress — design and repository preparation**
+**Status: Planned Enhancement — CI/CD design and repository preparation**
 
 ## Objective
 
-Introduce controlled source control, validation and deployment for the Azure
-Data Factory and Databricks assets in this repository. CI/CD is a planned
-workstream; the current project does not yet claim a completed automated
-deployment pipeline.
+Establish a structured CI/CD approach for managing, validating and deploying the Azure Data Factory and Azure Databricks assets developed as part of the Retail Business Intelligence Data Platform.
 
-## Proposed workflow
+The project is designed to demonstrate practical Azure Data Engineering implementation skills, including data ingestion, medallion architecture, PySpark transformations, Delta Lake, Unity Catalog and analytical data modeling. CI/CD is identified as a complementary enhancement to make the solution more maintainable, repeatable and deployment-ready across environments.
 
-1. Developer changes ADF JSON, Databricks notebooks, configuration or docs.
-2. Changes are committed to a feature branch.
-3. Pull request validation runs static checks.
-4. Review and approval are required before merging to the main branch.
-5. Deployment artifacts are generated or published from the approved branch.
-6. A controlled release deploys ADF and Databricks assets to the selected
-   environment using environment-specific configuration.
-7. Deployment outcome and release version are recorded.
+The proposed approach focuses on source control, automated validation, secure configuration management and controlled releases without introducing unnecessary Azure compute costs.
 
-## CI validation scope
+## Proposed CI/CD Workflow
 
-Initial validation should be non-deploying and should not start Azure compute.
+The following workflow describes the intended development and release process:
 
-- Parse non-empty ADF JSON files and report empty/incomplete files.
-- Check repository structure and required documentation.
-- Validate notebook JSON structure and code-cell extraction.
-- Run Python syntax checks on standalone `.py` files, when present.
-- Add notebook static checks where practical; do not execute notebooks as part
-  of ordinary CI.
-- Detect likely secrets and prevent credentials from being committed.
-- Publish validation results with the pull request.
+1. **Development:** Modify ADF JSON definitions, Databricks notebooks, configuration files or documentation.
+2. **Source Control:** Commit changes to a feature branch in the Git repository.
+3. **Pull Request:** Submit changes for review before merging into the main branch.
+4. **Automated Validation:** Run static checks against ADF definitions, notebook files, Python code and repository structure.
+5. **Review and Approval:** Review validation results and approve changes before merging.
+6. **Release Preparation:** Generate or publish deployment artifacts from the approved source.
+7. **Controlled Deployment:** Deploy ADF and Databricks assets to the selected environment using environment-specific configuration.
+8. **Release Tracking:** Record deployment versions, approvals and outcomes for traceability.
 
-## CD deployment scope
+## CI — Continuous Integration
+
+The initial CI implementation will focus on non-deploying validation. These checks are intended to run without starting Azure Databricks compute or executing data pipelines.
+
+### Planned validation checks
+
+- Validate non-empty ADF JSON files and report incomplete or invalid definitions.
+- Verify the expected repository structure and required documentation.
+- Validate Databricks notebook JSON structure and code-cell extraction.
+- Run Python syntax checks against standalone `.py` files, where available.
+- Introduce notebook static checks where practical, without executing notebooks during routine CI.
+- Scan repository changes for accidentally committed credentials or secrets.
+- Publish validation results as part of the pull request.
+
+These checks will help identify common repository and configuration issues early in the development lifecycle.
+
+## CD — Continuous Deployment
+
+The deployment strategy will support controlled promotion of Azure Data Factory and Databricks assets using environment-specific configuration.
 
 ### Azure Data Factory
 
-- Establish the authoritative ADF source-control and publish workflow.
-- Use generated deployment templates or the selected supported deployment
-  mechanism.
-- Parameterize factory names, linked services, storage endpoints and other
-  environment-specific values.
-- Keep secrets outside JSON source files and resolve them through Key Vault or
-  approved secure service connections.
-- Require approval before deployment to shared or production environments.
+- Establish the authoritative ADF source-control and publishing workflow.
+- Use generated deployment templates or another supported deployment mechanism.
+- Parameterize factory names, linked services, storage endpoints and other environment-specific settings.
+- Keep credentials outside source-controlled JSON files and retrieve secrets through Azure Key Vault or approved secure service connections.
+- Require appropriate approval before deploying to shared or production environments.
 
 ### Azure Databricks
 
-- Select and document a consistent deployment method for notebooks and jobs.
-- Keep workspace-specific paths, catalog names, storage locations and other
-  environment settings configurable.
-- Deploy notebooks and job definitions only through an approved release.
-- Avoid starting compute or executing jobs automatically unless explicitly
-  intended and approved.
+- Select and document a consistent deployment approach for notebooks and job definitions.
+- Externalize workspace-specific paths, catalog names, storage locations and other environment settings.
+- Deploy notebooks and job configurations through an approved release process.
+- Keep deployment separate from job execution so that compute is not started automatically unless explicitly required and approved.
 
-## Security and governance
+## Security and Governance
 
-- Never commit account keys, passwords, tokens or client secrets.
-- Use managed identities or approved service connections where supported.
+Security will be incorporated into the CI/CD design from the beginning.
+
+- Never commit storage account keys, passwords, access tokens or client secrets.
+- Use managed identities or approved service connections wherever supported.
 - Apply least-privilege permissions to build and deployment identities.
 - Separate development and production configuration.
-- Record approvals, deployment versions and outcomes.
+- Store and retrieve sensitive configuration through approved secret-management mechanisms.
+- Maintain deployment approvals, release versions and execution records.
 
-## Rollback and recovery
+## Rollback and Recovery Strategy
 
-- Retain the last known-good deployment artifacts.
-- Document how to redeploy the prior approved version.
-- Define how to restore ADF and Databricks configuration after a failed release.
-- Treat data rollback separately from code rollback; Delta data changes require
-  their own recovery strategy.
+A controlled deployment process should include a recovery approach.
 
-## Current state versus target state
+- Retain previously approved deployment artifacts.
+- Document how to redeploy the last known-good version.
+- Define recovery steps for failed ADF and Databricks configuration deployments.
+- Manage code rollback separately from data rollback.
+- Use Delta Lake recovery capabilities and an appropriate data recovery strategy when data changes need to be reversed.
+
+## Current State and Target State
 
 | Capability | Current status |
 |---|---|
-| Project assets stored in repository | Partially present |
-| ADF export completeness | In Progress — five pipeline exports available; SQL linked service intentionally excluded pending secure recreation |
-| CI validation workflow | Planned / In Progress |
-| Secret scanning and secure configuration | Planned / In Progress |
-| ADF automated deployment | Planned / In Progress |
-| Databricks automated deployment | Planned / In Progress |
-| Approval and rollback process | Planned / In Progress |
+| Git repository and project source control | Established |
+| ADF asset exports | Five pipeline exports available; SQL linked service intentionally excluded for secure recreation |
+| Databricks notebook source control | Project notebook assets maintained in the repository |
+| CI validation workflow | Planned enhancement |
+| Secret scanning and secure configuration | Planned enhancement |
+| ADF automated deployment | Planned enhancement |
+| Databricks automated deployment | Planned enhancement |
+| Environment-specific parameterization | Target design |
+| Approval and rollback process | Target design |
 
-## Acceptance criteria
+## Acceptance Criteria
 
-CI/CD can be considered implemented when:
+The CI/CD workstream will be considered implemented when:
 
-- A pull request triggers repeatable validation.
-- Invalid or incomplete deployment artifacts are reported.
-- Secrets are not stored in the repository.
-- ADF and Databricks deployment steps are documented and repeatable.
-- Environment configuration is parameterized.
-- Deployment requires the appropriate approvals.
-- A successful release and a rollback/recovery path are evidenced.
+- Pull requests trigger repeatable automated validation.
+- Invalid or incomplete deployment artifacts are identified and reported.
+- Secrets are excluded from source control and handled securely.
+- ADF and Databricks deployment procedures are documented and repeatable.
+- Environment-specific configuration is parameterized.
+- Appropriate approvals are required before deployment.
+- A successful release and a rollback or recovery procedure are demonstrated.
 
-No Azure pipeline execution or deployment is part of this planning document.
+## Project Implementation Perspective
+
+The Retail Business Intelligence Data Platform establishes the core Azure Data Engineering implementation, including data ingestion, ADLS Gen2 storage, Bronze/Silver/Gold processing, Databricks transformations and analytical Gold datasets.
+
+This CI/CD plan extends that foundation with a defined approach to source control, automated quality checks, secure deployment and release governance.
+
+**The focus is on building a maintainable and deployment-ready Azure Data Engineering solution, with CI/CD automation identified as a logical next enhancement.**
