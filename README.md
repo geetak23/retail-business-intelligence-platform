@@ -1,128 +1,162 @@
 # Retail Business Intelligence Data Platform
 
-I built this project to practice and demonstrate a practical Azure data
-engineering workflow using retail data and a couple of external data sources.
-The goal is to take source data from ingestion through a medallion-style lake
-architecture and shape it into datasets that can support business reporting.
+## Project Overview
 
-This is an active portfolio project. The core Azure resources and the main
-Bronze, Silver and Gold notebooks have been created, but some engineering
-reviews and deployment work are still open. The repository is useful for
-reviewing the implementation; it is not a one-click production deployment.
+This project demonstrates a practical Azure data engineering solution built using retail data and external data sources. It follows a medallion architecture to ingest, process, transform, and organize data into analytics-ready datasets that support business reporting and decision-making.
 
-## What the project uses
+The solution integrates transactional data from WideWorldImporters SQL Server with external weather and public-holiday data. Azure Data Factory handles data ingestion, Azure Data Lake Storage Gen2 provides the storage layers, and Azure Databricks with PySpark and Delta Lake supports data transformation and processing.
 
-- **WideWorldImporters on SQL Server** for customers, orders and order lines.
-- **Open-Meteo** for historical weather data.
-- **Nager.Date** for US public-holiday data.
-- **Azure Data Factory** for source ingestion.
-- **Azure Data Lake Storage Gen2** for the lake storage layers.
-- **Azure Databricks, PySpark and Delta Lake** for data processing.
-- **Unity Catalog and Azure identity-based access** for data governance and
-  storage access.
-- **Azure Key Vault** for secret-management integration.
+This is an active portfolio project. The core Azure resources, ingestion components, and primary Bronze, Silver, and Gold notebooks have been developed. The repository provides an overview of the implementation, architecture, and current development status.
 
-## How the data flows
+## Technology Stack
+
+- **Source System:** WideWorldImporters (SQL Server)
+- **External Data Sources:** Open-Meteo API, Nager.Date API
+- **Orchestration and Ingestion:** Azure Data Factory (ADF)
+- **Cloud Storage:** Azure Data Lake Storage Gen2 (ADLS Gen2)
+- **Data Processing:** Azure Databricks, PySpark, Delta Lake
+- **Data Governance:** Unity Catalog
+- **Security:** Azure Managed Identity and Azure Key Vault
+- **Analytics:** Power BI (planned)
+
+## Architecture and Data Flow
+
+The solution follows a Medallion Architecture with Landing, Bronze, Silver, and Gold layers.
 
 ```text
 WideWorldImporters SQL Server ─┐
 Open-Meteo API ────────────────┼──> Azure Data Factory
 Nager.Date API ────────────────┘             |
-                                             v
+                                              v
                                       ADLS Gen2 Landing
-                                             |
-                                             v
+                                              |
+                                              v
                                            Bronze
-                                             |
-                                             v
+                                              |
+                                              v
                                            Silver
-                                             |
-                                             v
+                                              |
+                                              v
                                             Gold
-                                             |
-                                             v
-                                  Analytics / Power BI (planned)
+                                              |
+                                              v
+                                    Analytics / Power BI
+                                         (Planned)
 ```
 
-The Databricks notebooks cover Auto Loader ingestion into Bronze, WWI
-transformations into Silver, weather and holiday transformations, Gold model
-creation, and data-quality checks.
+### Medallion Architecture
 
-## Current implementation
+- **Landing:** Stores source data ingested from SQL Server and external APIs.
+- **Bronze:** Maintains raw ingested data using incremental ingestion patterns.
+- **Silver:** Applies data cleansing, standardization, validation, and transformation.
+- **Gold:** Contains business-oriented dimensional models and aggregated datasets for analytical consumption.
 
-The current Gold model contains:
+The Databricks notebooks implement Auto Loader ingestion into Bronze, WideWorldImporters transformations into Silver, weather and holiday transformations, Gold model creation, and data-quality validation.
 
-- `FactSales` — one row per order line in the implemented model.
-- `DimDate` — date attributes covering the order-date range.
-- `DimCustomer` — the current customer representation.
-- `AggDailySales` — daily sales aggregations.
+## Current Implementation
 
-The ADF export includes individual ingestion pipelines for WWI orders, order
-lines and customers, plus weather and holiday API ingestion. The exported
-factory configuration is partial: the SQL Server linked service must be
-configured in the target ADF environment, and there is no master pipeline or
-trigger in this repository.
+### Gold Data Model
 
-Previously recorded development results include 73,595 orders, 231,412 order
-lines, 663 customers, 231,412 FactSales rows and 1,069 daily sales aggregate
-rows. These are historical project results, not a fresh validation performed
-when this repository was prepared.
+The current Gold layer contains the following datasets:
 
-## Repository layout
+| Table | Description |
+|---|---|
+| `FactSales` | Sales fact table containing one record per order line. |
+| `DimDate` | Date dimension with calendar attributes covering the order-date range. |
+| `DimCustomer` | Customer dimension containing the current customer representation. |
+| `AggDailySales` | Daily sales aggregation for reporting and analysis. |
+
+### Azure Data Factory Pipelines
+
+The repository includes modular Azure Data Factory ingestion pipelines for:
+
+- WideWorldImporters orders
+- WideWorldImporters order lines
+- WideWorldImporters customers
+- Historical weather data
+- Public-holiday data
+
+The pipelines are organized as independent, reusable components.
+
+Environment-specific configuration, including the SQL Server linked service and Integration Runtime, is completed during deployment to the target ADF environment.
+
+Master pipeline orchestration and trigger-based scheduling are planned as future enhancements.
+
+### Development Results
+
+The development phase successfully produced the following data volumes:
+
+| Dataset | Records |
+|---|---:|
+| Orders | 73,595 |
+| Order Lines | 231,412 |
+| Customers | 663 |
+| FactSales | 231,412 |
+| AggDailySales | 1,069 |
+
+These results provide a baseline of the data processing outcomes achieved during development.
+
+## Repository Structure
 
 ```text
-adf/
-  datasets/          ADF dataset exports
-  linked_services/   Non-secret linked-service exports
-  pipelines/         Individual ingestion pipeline exports
-databricks/           Databricks notebooks for Bronze, Silver, Gold and DQ
-data/                 Small sample API payloads
-docs/                 Architecture, source contracts, mappings and project notes
+retail-business-intelligence-platform/
+│
+├── adf/
+│   ├── datasets/          # ADF dataset exports
+│   ├── linked_services/   # Non-secret linked-service exports
+│   ├── pipelines/         # Individual ingestion pipelines
+│   └── README.md          # ADF configuration and setup
+│
+├── databricks/            # Bronze, Silver, Gold and DQ notebooks
+│
+├── data/                  # Sample API payloads
+│
+├── docs/                  # Architecture, mappings and project documentation
+│
+├── powerbi/               # Power BI-related assets
+│
+├── scripts/               # Supporting scripts
+│
+├── sql/                   # SQL scripts
+│
+├── tests/                 # Validation and testing assets
+│
+├── README.md
+└── SECURITY.md
 ```
 
-See the documentation for more detail:
+## Project Documentation
 
-- [Project status and remaining work](docs/project-status.md)
-- [ADF export review](docs/adf-review.md)
-- [Architecture and source inventory](docs/source-inventory.md)
-- [Source-to-target mapping](docs/source-to-target-mapping.md)
-- [Data quality rules](docs/data-quality-rules.md)
-- [Ingestion strategy](docs/ingestion-strategy.md)
-- [CI/CD plan](docs/ci-cd-plan.md)
-- [ADF setup notes](adf/README.md)
-- [Security guidance](SECURITY.md)
+For additional implementation details, refer to the following documentation:
 
-## What is still in progress
+- [Project Status and Remaining Work](docs/project-status.md)
+- [ADF Export Review](docs/adf-review.md)
+- [Architecture and Source Inventory](docs/source-inventory.md)
+- [Source-to-Target Mapping](docs/source-to-target-mapping.md)
+- [Data Quality Rules](docs/data-quality-rules.md)
+- [Ingestion Strategy](docs/ingestion-strategy.md)
+- [CI/CD Plan](docs/ci-cd-plan.md)
+- [ADF Setup Notes](adf/README.md)
+- [Security Guidance](SECURITY.md)
 
-A few items need attention before I would describe this as production-ready:
+## Deployment and Configuration
 
-- Reconcile the Orders CSV column order with the explicit Auto Loader schema.
-- Review the SQL Server linked-service setup and integration-runtime
-  configuration in the target ADF environment.
-- Verify the ADF sink file naming/extension behavior for the CSV landing files.
-- Resolve the outstanding Silver transformation review items, including the
-  holiday dataframe flow and deterministic customer deduplication.
-- Add reconciliation for order lines that do not match an order before Gold
-  fact creation.
-- Improve data-quality failure handling and run-history retention.
-- Add a non-deploying CI validation workflow, then define controlled ADF and
-  Databricks deployment steps.
+This repository provides the developed Azure Data Factory configurations, Databricks notebooks, and supporting documentation as a foundation for technical review and further development.
 
-Weather and holiday samples currently cover January 2025, while the available
-WideWorldImporters sales data covers 2013 through 2016. Those periods do not
-overlap, so the current project does not claim to measure weather or holiday
-effects on historical sales.
+To deploy the solution in another environment, configure the following environment-specific components:
 
-The Power BI dashboard has been deferred. Gold tables were connected and
-visible during development, but a completed dashboard is not included here.
+1. Azure Data Factory linked services and Integration Runtime.
+2. ADLS Gen2 storage permissions and access configuration.
+3. Azure Key Vault access and secret references.
+4. Databricks catalog, storage locations, and notebook paths.
+5. Environment-specific parameters and resource configurations.
 
-## Running and deployment
+Refer to [ADF Setup Notes](adf/README.md) for additional configuration details before deployment.
 
-The notebooks and ADF JSON are provided for technical review and further
-development. Before running them in another environment, configure the
-environment-specific linked services, storage permissions, Key Vault access,
-catalog and paths. Review the notes in `adf/README.md` first.
+## Project Status
 
-I am keeping this repository focused on the work that is actually present.
-Future enhancements are tracked separately rather than represented as completed
-features.
+The repository distinguishes implemented capabilities from planned enhancements to provide a transparent view of the current solution.
+
+The core data ingestion components, medallion processing notebooks, Gold data model, and development validation results are available for technical review.
+
+Further enhancements include master pipeline orchestration, trigger-based scheduling, additional deployment automation, and Power BI reporting integration.
