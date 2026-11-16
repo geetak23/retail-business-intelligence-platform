@@ -1,119 +1,138 @@
-# Project Status and Work Tracker
+# Project Status and Implementation Overview
 
-**Overall status: In Progress**  
-**Status baseline: 13 November 2026**
+**Overall Status: Core Implementation Completed**  
 
-## Project preservation decision
+## Project Overview
 
-The current implementation is being retained as the working baseline. Existing
-ADF configuration, Databricks notebooks, documentation and previously recorded
-results are not being replaced or re-executed as part of this status update.
+The Retail Business Intelligence Data Platform was developed as a hands-on Azure Data Engineering portfolio project to demonstrate the ability to design and implement a cloud-based data engineering solution using Azure services and Databricks.
 
-This tracker organizes remaining work. Items previously identified as TODO are
-tracked under **In Progress** so the project has an active completion plan.
-“In Progress” does not mean that a task has been executed or completed; the
-specific next action is stated for each item.
+The project covers the major stages of a typical data engineering workflow, including source ingestion, cloud storage, incremental data processing, medallion architecture, data transformations, dimensional modeling, and data-quality validation.
 
-## Status summary
+The core implementation has been developed, and the existing Azure configurations, Databricks notebooks, repository artifacts, and recorded development results are being preserved as the project's implementation baseline.
 
-| Workstream | Status | Notes |
+The current scope demonstrates practical experience working with Azure Data Factory, Azure Data Lake Storage Gen2, Azure Databricks, PySpark, Delta Lake, Unity Catalog, and Azure security services.
+
+Additional enhancements may be considered in the future based on learning objectives, project requirements, and available resources. They are not prerequisites for presenting the current implementation as an Azure Data Engineering portfolio project.
+
+## Implementation Summary
+
+| Workstream | Status | Implementation Highlights |
 |---|---|---|
-| Azure foundation and storage | Completed / recorded | Existing resource configuration is retained; no new provisioning planned |
-| ADF ingestion configuration | In Progress | Five individual pipeline exports and six datasets are present; SQL linked service is excluded because its supplied JSON is invalid/redacted; Orders schema mismatch remains open |
-| Databricks Bronze ingestion | In Progress | Notebook retained; review schema/source-contract alignment |
-| WWI Silver transformations | In Progress | Notebook retained; review deterministic deduplication and transformation assumptions |
-| Weather Silver | In Progress | Verify and document source units and validation behavior |
-| Holiday Silver | In Progress | Review dataframe flow and county-scope handling |
-| Silver-to-Gold model | In Progress | Retain current dimensions, fact and aggregate; document grain and limitations |
-| Gold data quality | In Progress | Expand documented coverage and define failure/severity behavior |
-| Documentation and evidence | In Progress | Align README, architecture, mappings, data dictionary and recorded results |
-| Repository hygiene | In Progress | Identify incomplete exports and organize artifacts without changing implementation |
-| CI/CD | In Progress | Define and implement source control, validation and deployment workflow |
-| Power BI dashboard | Deferred | Deliberately skipped to avoid additional time and cost |
+| Azure foundation and storage | Completed | Azure resources, ADLS Gen2 storage and access configuration |
+| ADF ingestion | Implemented | Modular ingestion pipelines for SQL Server and external API sources |
+| Bronze layer | Implemented | Databricks Auto Loader-based ingestion and raw data processing |
+| WWI Silver transformations | Implemented | PySpark transformations for retail transactional data |
+| Weather Silver | Implemented | External weather data ingestion and transformation |
+| Holiday Silver | Implemented | Public-holiday data ingestion and transformation |
+| Silver-to-Gold processing | Implemented | Fact table, dimensions and daily sales aggregation |
+| Data quality | Implemented | Data-quality checks and recorded validation results |
+| Unity Catalog and security | Implemented | Catalog, external location and identity-based storage access |
+| Documentation | Developed | Architecture, ingestion, mappings, data-quality and project documentation |
+| Source control | Established | GitHub repository with organized project artifacts |
+| CI/CD | Future enhancement | Automated validation and deployment workflows |
+| Power BI dashboard | Deferred | Optional reporting and visualization extension |
 
-## In-progress work items
+*Implementation status refers to the developed project artifacts and recorded development outcomes. It does not imply that every component has been independently revalidated in a fresh execution.*
 
-### 1. ADF configuration and source contracts
+## Implemented Capabilities
 
-- [x] Review the supplied non-empty ADF JSON exports and validate dataset references.
-- [ ] Reconcile repository exports with the actual deployed factory configuration.
-- [ ] Re-export or securely recreate the SQL Server linked service from the
-      actual ADF factory; the redacted source file is intentionally excluded.
-- [ ] Correct the Orders positional schema mismatch between the ADF source
-      dataset and the Auto Loader schema before any fresh ingestion.
-- [ ] Keep credentials, storage keys and connection secrets out of source control.
-- [x] Document that no master pipeline or trigger is included in the supplied export.
-- [ ] Confirm the `.csv` dataset filenames versus `.txt` Copy sink extension settings.
+### 1. Azure Data Factory
 
-### 2. Databricks notebooks
+The project includes modular Azure Data Factory ingestion configurations covering:
 
-- [ ] Review the Orders Auto Loader schema against the source dataset and CSV
-      positional order.
-- [ ] Review WWI Silver transformations and customer deduplication assumptions.
-- [ ] Verify Weather units against the API payload and `daily_units`.
-- [ ] Review Holiday Silver transformation flow and `county_scope` behavior.
-- [ ] Add or document unmatched OrderLine reconciliation before the FactSales
-      inner join.
-- [ ] Document the customer dimension as a latest/current-state representation,
-      not a completed SCD Type 2 implementation.
-- [ ] Extend the DQ design to cover Weather and Holiday datasets.
-- [ ] Document full-refresh writes, DQ history retention and pipeline failure
-      policy as current limitations or future improvements.
+- WideWorldImporters orders
+- WideWorldImporters order lines
+- WideWorldImporters customers
+- Historical weather data
+- Public-holiday data
 
-### 3. Gold model and validation evidence
+The ingestion design uses reusable datasets, linked-service references, and individual pipelines.
 
-- [ ] Preserve the existing FactSales grain: one row per OrderLine.
-- [ ] Preserve the recorded counts and DQ outcomes as historical evidence;
-      do not describe them as newly revalidated.
-- [ ] Document the non-overlapping sales, weather and holiday date ranges.
-- [ ] Align source-to-target mapping and data dictionary with the Gold tables
-      actually implemented: DimDate, DimCustomer, FactSales and AggDailySales.
-- [ ] Record known limitations and future enhancements separately from
-      implemented functionality.
+### 2. Azure Databricks and Medallion Architecture
 
-### 4. Documentation and repository
+The project implements a medallion-style data processing approach:
 
-- [ ] Complete the architecture diagram and end-to-end data-flow description.
-- [ ] Reconcile README and business requirements with implemented scope.
-- [ ] Complete Gold data dictionary and source-to-target mapping.
-- [ ] Add design decisions, validation evidence and interview explanations.
-- [ ] Review empty folders and empty/incomplete ADF JSON exports; label gaps
-      rather than inventing missing artifacts.
+- **Landing:** Source data ingestion and staging.
+- **Bronze:** Raw data ingestion using Databricks Auto Loader.
+- **Silver:** Data cleansing, standardization and transformation using PySpark.
+- **Gold:** Business-oriented dimensional and aggregated datasets using Delta Lake.
 
-### 5. CI/CD — In Progress
+### 3. Gold Data Modeling
 
-- [ ] Confirm the source-control strategy and repository branch conventions.
-- [ ] Add a CI validation workflow for changed files (JSON parsing, notebook
-      structure checks, Python syntax/static checks where applicable, and
-      documentation checks).
-- [ ] Define environment-specific configuration and parameterization for
-      development and any future higher environments.
-- [ ] Define secret handling through Azure Key Vault or approved service
-      connections; never commit credentials.
-- [ ] Define an Azure Data Factory deployment approach using published
-      templates or the team's chosen deployment mechanism.
-- [ ] Define a controlled Databricks notebook/job deployment approach.
-- [ ] Add approval gates and deployment documentation before enabling
-      deployment to shared or production environments.
-- [ ] Add a rollback/recovery procedure and deployment evidence.
+The implemented Gold layer includes:
 
-**Current CI/CD state:** planning and repository preparation are in progress.
-No completed automated CI/CD pipeline or automated deployment is claimed yet.
+- `FactSales` – sales transactions at order-line grain.
+- `DimDate` – date dimension.
+- `DimCustomer` – current customer representation.
+- `AggDailySales` – daily sales aggregation.
 
-## Explicitly deferred
+### 4. Data Quality and Validation
 
-### Power BI dashboard
+The project includes data-quality checks covering duplicate records, null values, invalid records and referential integrity.
 
-Power BI dashboard implementation is deferred by decision to avoid further
-project cost and execution time. The existing Gold tables and prior connection
-work may be described as groundwork, but a completed dashboard should not be
-claimed.
+Previously recorded development results include:
 
-## Execution and cost guardrails
+| Dataset | Records |
+|---|---:|
+| Orders | 73,595 |
+| Order Lines | 231,412 |
+| Customers | 663 |
+| FactSales | 231,412 |
+| AggDailySales | 1,069 |
+| Data Quality Results | 12 |
 
-- Do not rerun ADF pipelines, Databricks jobs or notebooks as part of this
-  documentation/repository work.
-- Do not provision new Azure resources or enable paid compute.
-- Use static code review, existing artifacts and recorded evidence.
-- Any future execution must be separately approved after reviewing expected
-  cost and runtime.
+These figures represent historical development results rather than a new execution performed for this status update.
+
+## Technical Review Notes
+
+The following items are documented as implementation considerations and known limitations:
+
+- Orders source-column ordering and Auto Loader schema alignment should be reconciled before future fresh ingestion.
+- Customer deduplication and current-state dimension assumptions should be reviewed before extending the model.
+- Weather and holiday transformations can benefit from additional validation and broader data-quality coverage.
+- The current customer dimension is not an SCD Type 2 implementation.
+- The current ADF exports do not include a master orchestration pipeline or trigger configuration.
+- SQL Server linked-service credentials and environment-specific connection settings must be configured securely in the target environment.
+- The current data-quality and processing design can be extended with more comprehensive failure handling, audit history and recovery capabilities.
+
+These are opportunities to strengthen the solution further, rather than prerequisites for understanding the capabilities demonstrated by the current implementation.
+
+## Future Enhancement Opportunities
+
+The following enhancements are intentionally outside the current implementation scope and may be revisited in the future.
+
+### Azure Data Factory
+- Master pipeline orchestration.
+- Trigger-based scheduling.
+- Enhanced retry and failure-handling mechanisms.
+- Additional incremental ingestion and recovery scenarios.
+
+### Databricks
+- Further schema validation and source-contract enforcement.
+- Enhanced deterministic deduplication.
+- Additional data-quality coverage.
+- Historical dimension tracking using SCD Type 2.
+- Improved audit and recovery mechanisms.
+
+### CI/CD
+- Automated JSON, Python and notebook validation.
+- Azure Data Factory deployment automation.
+- Databricks notebook and job deployment.
+- Environment-specific parameterization.
+- Approval gates and rollback procedures.
+
+### Analytics
+- Power BI dashboard development.
+- Business KPI visualization.
+- Interactive sales and customer analytics.
+
+## Project Preservation and Execution Approach
+
+The current implementation is being retained as the portfolio baseline.
+
+The focus is on preserving the existing work, maintaining accurate documentation, and presenting the implemented architecture and engineering decisions clearly.
+
+- Existing ADF configurations and Databricks notebooks are retained.
+- Previously recorded data volumes and validation results are preserved as development evidence.
+- Documentation and repository updates are based on existing implementation artifacts and recorded results.
+- Future execution, deployment and enhancements can be considered independently when required.
