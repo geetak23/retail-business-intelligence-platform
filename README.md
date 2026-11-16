@@ -160,3 +160,11 @@ The repository distinguishes implemented capabilities from planned enhancements 
 The core data ingestion components, medallion processing notebooks, Gold data model, and development validation results are available for technical review.
 
 Further enhancements include master pipeline orchestration, trigger-based scheduling, additional deployment automation, and Power BI reporting integration.
+
+## Conclusion
+
+This project demonstrates hands-on experience designing and implementing an Azure-based retail data engineering solution using Azure Data Factory, ADLS Gen2, Azure Databricks, PySpark, Delta Lake and Unity Catalog.
+
+It provides a practical example of working with multiple data sources, implementing medallion architecture, transforming transactional data into analytical models, and applying data-quality validation.
+
+The repository serves as a technical portfolio demonstrating the Azure Data Engineering concepts, services and implementation skills applied throughout the project.
