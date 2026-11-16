@@ -1,25 +1,37 @@
-# Azure Data Factory export review
+# Azure Data Factory Implementation Review
 
-**Review type:** Static review of the repository JSON exports  
-**Review date:** 13 November 2026  
-**Execution:** No ADF pipeline was run as part of this review.
+**Review Type:** Static review of repository JSON exports  
 
-## Export inventory
+## 1. Overview
 
-| Artifact type | Included |
+Azure Data Factory is used in this project to ingest retail transactional data from WideWorldImporters SQL Server and external data from weather and public-holiday APIs into Azure Data Lake Storage Gen2.
+
+The implementation follows a modular pipeline design, with separate ingestion pipelines for individual source entities and external data sources.
+
+This review documents the available ADF configurations, validates repository artifacts and dataset references, and identifies configuration considerations for future deployment and execution.
+
+The review also provides technical documentation of the current implementation and establishes a clear reference for extending the solution in the future.
+
+## 2. Export Inventory
+
+The repository contains the following Azure Data Factory artifacts:
+
+| Artifact Type | Included |
 |---|---:|
 | Datasets | 6 |
-| Linked services | 3 valid JSON exports |
+| Linked Services | 3 valid JSON exports |
 | Pipelines | 5 |
-| Activities | 5 Copy activities |
-| Master pipeline | Not present |
-| Triggers | Not present in this export |
+| Copy Activities | 5 |
+| Master Pipeline | Not included in current export |
+| Triggers | Not included in current export |
 
-The SQL Server linked service is referenced by two SQL datasets but is not
-included as a deployable JSON file. Its source export contained redaction
-placeholders and was invalid JSON. See [`../adf/README.md`](../adf/README.md).
+The SQL Server linked service is referenced by two SQL datasets but is not included as a deployable JSON file. The supplied source export contained redaction placeholders and was invalid JSON. The file was excluded to avoid committing an incomplete or misleading configuration.
 
-## Pipeline summary
+Refer to [ADF Setup Notes](../adf/README.md) for additional configuration details.
+
+## 3. Pipeline Implementation Summary
+
+The project includes five individual ingestion pipelines:
 
 | Pipeline | Source | Destination |
 |---|---|---|
@@ -29,39 +41,47 @@ placeholders and was invalid JSON. See [`../adf/README.md`](../adf/README.md).
 | `pl_ingest_historical_weather` | Open-Meteo archive API | `landing/weather/weather.json` |
 | `pl_ingest_holiday` | Nager.Date, US, 2025 | `landing/holiday/holidays.json` |
 
-Each exported pipeline currently contains one Copy activity. The three WWI
-pipelines use the SQL Server source and ADLS Gen2 sink. Weather and holiday
-pipelines use HTTP sources and JSON sinks.
+Each pipeline currently contains one Copy activity.
 
-## Checks performed
+The three WideWorldImporters pipelines use SQL Server as the source and ADLS Gen2 as the destination.
+
+The weather and holiday pipelines use HTTP sources and JSON-based landing destinations.
+
+This modular approach separates source ingestion responsibilities and provides a foundation for independent pipeline maintenance and future orchestration.
+
+## 4. Configuration Validation
+
+The following static validation checks were completed:
 
 - All included ADF JSON files parse successfully.
-- Dataset references used by the five pipelines resolve to dataset files in
-  this repository.
-- HTTP and ADLS linked-service references resolve to included linked-service
-  exports.
-- SQL datasets refer to `LS_local_SqlServer_wwi_db`; that linked service is
-  intentionally not included because its supplied export was invalid.
-- Dataset parameters used by the pipelines are present in the corresponding
-  dataset definitions.
-- No master pipeline or trigger definition was found in the supplied export.
+- Dataset references used by the five pipelines resolve to dataset files in the repository.
+- HTTP and ADLS linked-service references resolve to included linked-service exports.
+- SQL datasets correctly reference `LS_local_SqlServer_wwi_db`; its deployable configuration is intentionally excluded because the supplied export was invalid.
+- Dataset parameters referenced by the pipelines are present in their corresponding dataset definitions.
+- The supplied export does not contain a master pipeline or trigger definitions.
 
-## Items to resolve before deployment
+These checks establish that the available repository artifacts are structurally consistent, subject to the configuration considerations documented below.
 
-### 1. SQL Server linked service is not deployable from this repository
+## 5. Technical Review and Configuration Considerations
 
-The supplied `LS_local_SqlServer_wwi_db.json` contains bare `[REDACTED]`
-placeholders for connection fields, which makes it invalid JSON. It has been
-excluded rather than converted into a misleading deployable artifact.
+### 5.1 SQL Server Linked Service Configuration
 
-Create the linked service in the target ADF factory using the correct server,
-database, authentication and self-hosted integration runtime. Keep credentials
-in ADF secure configuration or an approved secret store.
+The supplied `LS_local_SqlServer_wwi_db.json` contains `[REDACTED]` placeholders for connection fields, making it invalid JSON.
 
-### 2. Orders source column order does not match the Auto Loader schema
+Rather than including an incomplete configuration, the linked service has been excluded from the deployable repository artifacts.
 
-The ADF `DS_SqlLocal_wwidb_orders` dataset lists the source columns in this
-order:
+For deployment in another environment, configure the SQL Server linked service in the target ADF factory using:
+
+- Correct SQL Server instance and database.
+- Approved authentication mechanism.
+- Appropriate self-hosted Integration Runtime.
+- Secure credential management through ADF or an approved secret store.
+
+This keeps environment-specific connection details and credentials separate from source-controlled project artifacts.
+
+### 5.2 Orders Source Schema Alignment
+
+The ADF `DS_SqlLocal_wwidb_orders` dataset defines the source columns in the following order:
 
 1. `OrderID`
 2. `CustomerID`
@@ -80,52 +100,93 @@ order:
 15. `LastEditedBy`
 16. `LastEditedWhen`
 
-The Auto Loader `orders_schema` in
-`databricks/00_Auto_Loader_Bronze_ingestion.ipynb` does not use the same
-positional schema. It omits `BackorderOrderID` and `LastEditedBy`, and includes
-`TotalDryItems` and `TotalChillerItems` instead. Since the landing dataset has
-`firstRowAsHeader: false` and Auto Loader also reads with `header=false`, this
-is a material positional-schema mismatch that must be corrected before
-relying on a fresh ingestion.
+The Auto Loader `orders_schema` in `databricks/00_Auto_Loader_Bronze_ingestion.ipynb` currently uses a different positional schema.
 
-The notebook source was not changed during this repository preparation.
+It omits `BackorderOrderID` and `LastEditedBy`, while including `TotalDryItems` and `TotalChillerItems`.
 
-### 3. CSV file extension needs confirmation
+Because the landing dataset has `firstRowAsHeader: false` and Auto Loader also reads with `header=false`, the source column ordering and ingestion schema need to be aligned before relying on a fresh ingestion.
 
-The WWI landing dataset receives filenames ending in `.csv`, while the
-customers and order-lines Copy sinks specify `fileExtension: ".txt"`. Confirm
-the actual output naming behavior in ADF and align the dataset filename,
-sink extension and Auto Loader file discovery pattern. The Orders pipeline
-also uses the `.txt` sink extension setting.
+This is an important source-contract validation consideration when working with headerless CSV files.
 
-### 4. SQL extraction strategy is currently full-table
+The existing notebook implementation was preserved during this repository review.
 
-The exported orders pipeline uses `select * from sales.orders;`. The customers
-and order-lines pipelines use parameterized table datasets. The exports do not
-show watermark parameters or incremental filters. Treat these as full extracts
-unless the deployed pipeline contains additional configuration not present in
-this snapshot.
+### 5.3 CSV File Naming and Extension Consistency
 
-### 5. Landing and security configuration must be checked per environment
+The WWI landing datasets use filenames ending in `.csv`, while the customers and order-lines Copy sinks specify `fileExtension: ".txt"`.
 
-Review the storage linked service authentication, ADLS permissions, self-hosted
-integration runtime availability, Key Vault references and access controls
-before deployment. Customer source data may contain personal information;
-only use approved development data and protect the landing zone accordingly.
+The Orders pipeline also uses the `.txt` sink extension setting.
 
-### 6. No master orchestration or triggers are included
+The actual output naming behavior should be confirmed in the target ADF environment, and the following configurations should be aligned:
 
-The five pipelines are separate definitions. A master pipeline, dependency
-ordering, schedule/event triggers and failure-notification workflow are not
-present in the supplied export. Do not describe these as implemented.
+- Dataset filename.
+- Copy activity sink extension.
+- Auto Loader file discovery pattern.
 
-## Review conclusion
+This will help maintain consistent file discovery and ingestion behavior across the transactional datasets.
 
-The updated export is materially more complete than the earlier repository
-snapshot and is useful for GitHub source control and technical review. It is
-not yet a complete deployment package. The SQL Server linked service and the
-Orders positional schema are the main blockers to treating the ADF-to-Bronze
-path as ready for a fresh run.
+### 5.4 SQL Extraction Strategy
 
-This review records findings only. It does not modify ADF pipeline logic or
-Databricks transformation logic.
+The exported Orders pipeline currently uses:
+
+`select * from sales.orders;`
+
+The Customers and OrderLines pipelines use parameterized table datasets.
+
+The supplied exports do not show watermark parameters or incremental SQL filters.
+
+Accordingly, these configurations are documented as full-table extraction patterns based on the available repository snapshot.
+
+Incremental extraction using watermark-based filtering can be considered as a future enhancement to improve scalability and reduce unnecessary data movement.
+
+### 5.5 Landing Storage and Security Configuration
+
+The landing layer provides the entry point for source data entering the data lake.
+
+Before deploying the solution in another environment, review:
+
+- Storage linked-service authentication.
+- ADLS Gen2 permissions and access controls.
+- Self-hosted Integration Runtime availability and connectivity.
+- Azure Key Vault references and permissions.
+- Environment-specific security settings.
+
+Customer source data may contain personal information, so approved development data and appropriate access restrictions should be maintained throughout the ingestion process.
+
+### 5.6 Pipeline Orchestration and Scheduling
+
+The current repository contains five independent pipeline definitions.
+
+A master pipeline, dependency ordering, schedule/event triggers and failure-notification workflow are not included in the supplied export.
+
+The modular pipeline structure provides a foundation for introducing centralized orchestration and scheduling when required.
+
+These capabilities are documented as future enhancements rather than implemented functionality.
+
+## 6. Deployment Considerations
+
+For deployment into another Azure environment, the following activities provide a practical configuration checklist:
+
+- Configure the SQL Server linked service and Integration Runtime.
+- Validate connectivity between the source SQL Server and ADF.
+- Configure ADLS Gen2 access and permissions.
+- Confirm Key Vault integration and secure credential references.
+- Align the Orders source schema with the Auto Loader schema.
+- Confirm file naming and extension behavior.
+- Validate source extraction strategy and dataset parameters.
+- Review pipeline dependencies and execution order if orchestration is introduced.
+
+These steps support a controlled deployment process while keeping environment-specific configuration separate from the portfolio repository.
+
+## 7. Review Conclusion
+
+The Azure Data Factory implementation demonstrates a modular source-ingestion approach using SQL Server and external HTTP-based data sources, with ADLS Gen2 serving as the landing destination.
+
+The repository contains five individual ingestion pipelines, six datasets, and the associated linked-service configurations available for static technical review.
+
+The review also validates the structure of the supplied JSON exports and documents important engineering considerations involving source schemas, file formats, secure connectivity, extraction strategies and orchestration.
+
+The existing implementation provides a practical foundation for an Azure Data Engineering workflow and demonstrates familiarity with ADF components and their integration with the broader Databricks medallion architecture.
+
+The current configurations and findings are preserved as part of the project documentation. Additional deployment validation and enhancements can be undertaken independently when required.
+
+**Review Scope:** This document records static configuration findings and implementation considerations. No ADF pipeline or Databricks transformation logic was modified or executed as part of this review.
