@@ -1,6 +1,16 @@
 # Source-to-Target Mapping
 
-## Sales.InvoiceLines → FactInvoiceLine
+## 1. Purpose
+
+This document describes the source-to-target mappings and analytical design considerations for the Retail Business Intelligence Data Platform.
+
+It documents how data from WideWorldImporters and external data sources can be organized into analytical facts and dimensions to support retail sales, order, product, inventory, customer, geographic, weather, and holiday analysis.
+
+> **Implementation scope:** This document includes both the implemented Gold model and proposed analytical model extensions. The current implemented Gold tables are `FactSales`, `DimDate`, `DimCustomer`, and `AggDailySales`. Additional tables described below represent the broader dimensional model design and are not all part of the current implementation.
+
+---
+
+## 2. Sales.InvoiceLines → FactInvoiceLine
 
 ### Target Grain
 
@@ -8,8 +18,7 @@ One row per invoice line.
 
 ### Business Purpose
 
-Represents invoiced retail activity and provides the primary source
-for sales amount, tax, quantity, and line-profit analysis.
+Represents invoiced retail activity and provides the primary source for sales amount, tax, quantity, and line-profit analysis.
 
 ### Column Mapping
 
@@ -37,15 +46,15 @@ for sales amount, tax, quantity, and line-profit analysis.
 Based on validation of the source data:
 
 ```text
-Quantity × UnitPrice
-        =
-NetLineAmountBeforeTax
+NetLineAmountBeforeTax = Quantity × UnitPrice
 
-NetLineAmountBeforeTax + TaxAmount
-        =
-ExtendedPrice
+ExtendedPrice = NetLineAmountBeforeTax + TaxAmount
 
-## Sales.Invoices → FactInvoice
+```
+
+---
+
+## 3. Sales.Invoices → FactInvoice
 
 ### Target Grain
 
@@ -53,11 +62,9 @@ One row per invoice.
 
 ### Business Purpose
 
-Represents the invoice-level business event associated with invoiced
-retail activity.
+Represents the invoice-level business event associated with invoiced retail activity.
 
-The invoice fact provides invoice-level dates and business status,
-while `FactInvoiceLine` provides the detailed financial measures.
+The invoice fact provides invoice-level dates and business status, while `FactInvoiceLine` provides the detailed financial measures.
 
 ### Column Mapping
 
@@ -73,8 +80,7 @@ while `FactInvoiceLine` provides the detailed financial measures.
 
 ### Optional Source Fields
 
-The following fields may be included later if required by reporting
-or operational analysis:
+The following fields may be included later if required by reporting or operational analysis:
 
 - `TotalDryItems`
 - `TotalChillerItems`
@@ -98,8 +104,7 @@ The following fields are not required for the initial analytical fact:
 - `ReturnedDeliveryData`
 - `LastEditedBy`
 
-These fields can be incorporated later when a specific business
-requirement justifies them.
+These fields can be incorporated later when a specific business requirement justifies them.
 
 ### Important Source Finding
 
@@ -111,23 +116,20 @@ The validated source contains:
 
 The source also currently contains:
 
-- `IsCreditNote = 0` for all 70,510 invoices.
+- `IsCreditNote = 0` for all 70,510 invoices
 
-The `IsCreditNote` field will nevertheless be retained because it is
-part of the source business model and should not be discarded merely
-because the current sample contains no credit notes.
+The `IsCreditNote` field will nevertheless be retained because it is part of the source business model and should not be discarded merely because the current sample contains no credit notes.
 
 ### Analytical Role
 
-`FactInvoice` represents invoice-level events.
+- `FactInvoice` represents invoice-level events.
+- `FactInvoiceLine` represents the detailed financial activity associated with each invoice.
 
-`FactInvoiceLine` represents the detailed financial activity associated
-with each invoice.
+The two facts remain separate in the proposed model rather than duplicating invoice-level attributes across every invoice line.
 
-The two facts will remain separate rather than duplicating invoice-level
-attributes across every invoice line.
+---
 
-## Sales.Orders → FactOrder
+## 4. Sales.Orders → FactOrder
 
 ### Target Grain
 
@@ -137,8 +139,7 @@ One row per order.
 
 Represents the operational order event before invoicing.
 
-This fact preserves order activity separately from invoiced financial
-activity.
+This fact preserves order activity separately from invoiced financial activity.
 
 ### Column Mapping
 
@@ -166,8 +167,7 @@ The following fields are excluded from the initial analytical fact:
 - `PickingCompletedWhen`
 - `LastEditedBy`
 
-These can be added later if a specific analytical requirement
-justifies them.
+These can be added later if a specific analytical requirement justifies them.
 
 ### Important Source Finding
 
@@ -180,22 +180,20 @@ The validated source contains:
 
 Orders without invoices will remain in `FactOrder`.
 
-They will not be artificially converted into invoice or sales-line
-records.
+They will not be artificially converted into invoice or sales-line records.
 
 ### Analytical Role
 
-`FactOrder` represents the order lifecycle and operational activity.
+- `FactOrder` represents the order lifecycle and operational activity.
+- `FactOrderLine` represents detailed ordered-item activity.
+- `FactInvoice` represents invoice-level activity.
+- `FactInvoiceLine` represents detailed invoiced financial activity.
 
-`FactOrderLine` represents detailed ordered-item activity.
+These facts represent different business grains and should remain separate.
 
-`FactInvoice` represents invoice-level activity.
+---
 
-`FactInvoiceLine` represents detailed invoiced financial activity.
-
-These facts represent different business grains and should remain
-separate.
-## Sales.OrderLines → FactOrderLine
+## 5. Sales.OrderLines → FactOrderLine
 
 ### Target Grain
 
@@ -205,8 +203,7 @@ One row per order line.
 
 Represents detailed operational order activity at the product level.
 
-This fact supports analysis of ordered quantities and order behavior
-before invoicing.
+This fact supports analysis of ordered quantities and order behavior before invoicing.
 
 ### Column Mapping
 
@@ -234,15 +231,13 @@ These can be added later if required by a business use case.
 
 ### Important Design Decision
 
-`FactOrderLine` must not be treated as the same financial fact as
-`FactInvoiceLine`.
+`FactOrderLine` must not be treated as the same financial fact as `FactInvoiceLine`.
 
 An order line represents ordered activity.
 
 An invoice line represents invoiced activity.
 
-An order may exist without an invoice, as demonstrated by the
-validated source relationship.
+An order may exist without an invoice, as demonstrated by the validated source relationship.
 
 ### Analytical Use
 
@@ -254,10 +249,11 @@ validated source relationship.
 - Ordered versus invoiced analysis
 - Operational order analysis
 
-Financial sales metrics will primarily use `FactInvoiceLine` rather
-than assuming that every order represents completed invoiced sales.
+Financial sales metrics will primarily use `FactInvoiceLine` rather than assuming that every order represents completed invoiced sales.
 
-## Warehouse.StockItems → DimProduct
+---
+
+## 6. Warehouse.StockItems → DimProduct
 
 ### Target Grain
 
@@ -265,8 +261,7 @@ One row per stock item/product.
 
 ### Business Purpose
 
-Provides product attributes used to analyze sales, profitability,
-inventory, and product performance.
+Provides product attributes used to analyze sales, profitability, inventory, and product performance.
 
 ### Column Mapping
 
@@ -288,8 +283,7 @@ inventory, and product performance.
 
 ### Source Fields Intentionally Not Included Initially
 
-The following fields are excluded from the initial analytical
-dimension:
+The following fields are excluded from the initial analytical dimension:
 
 - `UnitPackageID`
 - `OuterPackageID`
@@ -302,18 +296,15 @@ dimension:
 - `SearchDetails`
 - `LastEditedBy`
 
-Package-related fields can be added later if packaging analysis becomes
-a requirement.
+Package-related fields can be added later if packaging analysis becomes a requirement.
 
 ### System-Versioned Source
 
-`Warehouse.StockItems` is system-versioned and contains `ValidFrom` and
-`ValidTo`.
+`Warehouse.StockItems` is system-versioned and contains `ValidFrom` and `ValidTo`.
 
-The initial implementation will use the current product records.
+The initial design uses the current product records.
 
-A future enhancement may implement a Slowly Changing Dimension Type 2
-strategy if historical product attribute changes need to be preserved.
+A future enhancement may implement a Slowly Changing Dimension Type 2 strategy if historical product attribute changes need to be preserved.
 
 ### Analytical Use
 
@@ -330,10 +321,11 @@ strategy if historical product attribute changes need to be preserved.
 
 The source `StockItemID` will be preserved as the business/source key.
 
-A separate surrogate `ProductKey` may be generated in the Gold layer
-to support dimensional modeling and future historical versions.
+A separate surrogate `ProductKey` may be generated in the Gold layer to support dimensional modeling and future historical versions.
 
-## Sales.Customers → DimCustomer
+---
+
+## 7. Sales.Customers → DimCustomer
 
 ### Target Grain
 
@@ -341,8 +333,7 @@ One row per current customer.
 
 ### Business Purpose
 
-Provides customer attributes used for customer-level sales and
-geographic analysis.
+Provides customer attributes used for customer-level sales and geographic analysis.
 
 ### Column Mapping
 
@@ -374,18 +365,15 @@ The following fields are excluded from the initial customer dimension:
 - `DeliveryLocation`
 - `LastEditedBy`
 
-These fields can be added later when a specific analytical requirement
-justifies them.
+These fields can be added later when a specific analytical requirement justifies them.
 
 ### System-Versioned Source
 
-`Sales.Customers` is system-versioned and contains `ValidFrom` and
-`ValidTo`.
+`Sales.Customers` is system-versioned and contains `ValidFrom` and `ValidTo`.
 
-The initial implementation will use the current customer records.
+The initial design uses the current customer records.
 
-A future enhancement may implement Slowly Changing Dimension Type 2 if
-historical customer attribute changes need to be preserved.
+A future enhancement may implement Slowly Changing Dimension Type 2 if historical customer attribute changes need to be preserved.
 
 ### Analytical Use
 
@@ -401,10 +389,11 @@ historical customer attribute changes need to be preserved.
 
 The source `CustomerID` will be preserved as the business/source key.
 
-A separate surrogate `CustomerKey` may be generated in the Gold layer
-to support dimensional modeling and future historical versions.
+A separate surrogate `CustomerKey` may be generated in the Gold layer to support dimensional modeling and future historical versions.
 
-## Warehouse.StockItemHoldings → FactInventorySnapshot
+---
+
+## 8. Warehouse.StockItemHoldings → FactInventorySnapshot
 
 ### Target Grain
 
@@ -414,8 +403,7 @@ One row per stock item representing the current inventory position.
 
 Represents the latest available inventory position for each product.
 
-This fact is a **current-state snapshot**, not a historical inventory
-movement fact.
+This fact is a **current-state snapshot**, not a historical inventory movement fact.
 
 ### Column Mapping
 
@@ -433,10 +421,12 @@ movement fact.
 ### Derived Measure
 
 ```text
-InventoryValue =
-    QuantityOnHand × LastCostPrice
+InventoryValue = QuantityOnHand × LastCostPrice
+```
 
-    ## Warehouse.StockItemTransactions → FactInventoryTransaction
+---
+
+## 9. Warehouse.StockItemTransactions → FactInventoryTransaction
 
 ### Target Grain
 
@@ -446,8 +436,7 @@ One row per stock-item inventory transaction.
 
 Represents historical inventory movements associated with products.
 
-This fact provides the historical movement view that complements the
-current-state inventory snapshot in `FactInventorySnapshot`.
+This fact provides the historical movement view that complements the current-state inventory snapshot in `FactInventorySnapshot`.
 
 ### Column Mapping
 
@@ -478,11 +467,9 @@ current-state inventory snapshot in `FactInventorySnapshot`.
 
 ### Transaction Type Interpretation
 
-The transaction type will be resolved through
-`DimTransactionType`.
+The transaction type will be resolved through `DimTransactionType`.
 
-The source transaction type should not be hard-coded in downstream
-transformations.
+The source transaction type should not be hard-coded in downstream transformations.
 
 Primary inventory-related categories include:
 
@@ -491,13 +478,11 @@ Primary inventory-related categories include:
 - Stock Receipt
 - Stock Adjustment at Stocktake
 
-Customer and supplier invoice/credit-note transactions may also be
-used when analyzing inventory-related business activity.
+Customer and supplier invoice/credit-note transactions may also be used when analyzing inventory-related business activity.
 
 ### Optional Relationships
 
-The following source relationships are optional because their values
-depend on the transaction type:
+The following source relationships are optional because their values depend on the transaction type:
 
 - `CustomerID`
 - `InvoiceID`
@@ -510,13 +495,19 @@ These fields must not be treated as universally populated.
 
 `FactInventoryTransaction` is a **movement fact**.
 
-It must remain separate from:
+It remains separate from the current-state snapshot:
 
 ```text
 FactInventorySnapshot
-    → current inventory position
+    → Current inventory position
 
-    ## Application.TransactionTypes → DimTransactionType
+FactInventoryTransaction
+    → Historical inventory movements
+```
+
+---
+
+## 10. Application.TransactionTypes → DimTransactionType
 
 ### Target Grain
 
@@ -524,8 +515,7 @@ One row per transaction type.
 
 ### Business Purpose
 
-Provides the business meaning and analytical classification of
-inventory and related transactions.
+Provides the business meaning and analytical classification of inventory and related transactions.
 
 ### Column Mapping
 
@@ -536,8 +526,7 @@ inventory and related transactions.
 
 ### Analytical Classification
 
-The analytical category will be derived from the source transaction
-type:
+The analytical category will be derived from the source transaction type:
 
 | Transaction Type | Analytical Category |
 |---|---|
@@ -557,14 +546,11 @@ type:
 
 ### Important Design Decision
 
-The source transaction type name remains the authoritative business
-definition.
+The source transaction type name remains the authoritative business definition.
 
-The analytical category is a downstream classification used to make
-reporting and filtering easier.
+The analytical category is a downstream classification used to make reporting and filtering easier.
 
-Transaction type names should not be hard-coded into the
-`FactInventoryTransaction` transformation.
+Transaction type names should not be hard-coded into the `FactInventoryTransaction` transformation.
 
 ### Analytical Use
 
@@ -582,21 +568,19 @@ Transaction type names should not be hard-coded into the
 
 This is a small reference dataset.
 
-The initial implementation will use a full load rather than an
-incremental extraction strategy.
+The initial design uses a full load rather than an incremental extraction strategy.
 
 ### System-Versioned Source
 
-`Application.TransactionTypes` is system-versioned and contains
-`ValidFrom` and `ValidTo`.
+`Application.TransactionTypes` is system-versioned and contains `ValidFrom` and `ValidTo`.
 
-The initial implementation will use the current transaction-type
-records.
+The initial design uses the current transaction-type records.
 
-Historical versions may be incorporated later if the business requires
-historical tracking of transaction-type definitions.
+Historical versions may be incorporated later if the business requires historical tracking of transaction-type definitions.
 
-## Application.Cities + Application.StateProvinces + Application.Countries → DimGeography
+---
+
+## 11. Application.Cities + Application.StateProvinces + Application.Countries → DimGeography
 
 ### Target Grain
 
@@ -604,9 +588,7 @@ One row per city.
 
 ### Business Purpose
 
-Provides the geographic hierarchy required to analyze retail activity
-from customer delivery location through city, state/province, sales
-territory, and country.
+Provides the geographic hierarchy required to analyze retail activity from customer delivery location through city, state/province, sales territory, and country.
 
 ### Source Relationships
 
@@ -618,8 +600,17 @@ Application.Cities.CityID
 Application.StateProvinces.StateProvinceID
         ↓
 Application.Countries.CountryID
+```
 
-## Open-Meteo → DimWeather
+### Proposed Geographic Attributes
+
+The dimension can include city-level attributes and related state/province and country details.
+
+The final column mapping should be confirmed against the source schema before implementation.
+
+---
+
+## 12. Open-Meteo → DimWeather
 
 ### Target Grain
 
@@ -627,12 +618,9 @@ One row per weather location per calendar date.
 
 ### Business Purpose
 
-Provides daily weather context that can be joined with retail sales
-activity by calendar date.
+Provides daily weather context that can be joined with retail sales activity by calendar date.
 
-The initial implementation treats Dallas-area weather as contextual
-environmental data. It does not imply that every customer or transaction
-was directly affected by the weather conditions.
+The initial design treats Dallas-area weather as contextual environmental data. It does not imply that every customer or transaction was directly affected by the weather conditions.
 
 ### Column Mapping
 
@@ -663,7 +651,7 @@ These units should be preserved consistently in the analytical layer.
 
 The Open-Meteo response contains parallel arrays under `daily`.
 
-Example:
+Example fields:
 
 ```text
 daily.time
@@ -672,18 +660,21 @@ daily.temperature_2m_min
 daily.precipitation_sum
 daily.rain_sum
 daily.wind_speed_10m_max
+```
 
-## Nager.Date → DimHoliday
+The transformation aligns the values at each array position to produce one weather record per location and date.
+
+---
+
+## 13. Nager.Date → DimHoliday
 
 ### Target Grain
 
-One row per holiday occurrence and applicable
-jurisdiction/type combination.
+One row per holiday occurrence and applicable jurisdiction/type combination.
 
 ### Business Purpose
 
-Provides holiday and calendar context for analyzing potential changes
-in retail activity around public holidays.
+Provides holiday and calendar context for analyzing potential changes in retail activity around public holidays.
 
 ### Column Mapping
 
@@ -703,16 +694,14 @@ in retail activity around public holidays.
 
 The source may contain multiple records for the same calendar date.
 
-Therefore, the transformation must preserve the source records rather
-than assuming one holiday record per date.
+Therefore, the transformation must preserve the source records rather than assuming one holiday record per date.
 
 Texas applicability will be determined using:
 
 - `IsGlobal`
 - `ApplicableRegions`
 
-The transformation must not assume that every US holiday applies to
-Texas.
+The transformation must not assume that every US holiday applies to Texas.
 
 ### Analytical Use
 
@@ -730,8 +719,13 @@ The retail source covers:
 
 ```text
 2013-01-01 through 2016-05-31
+```
 
-## Generated Calendar → DimDate
+Holiday data should be aligned to the retail reporting period when performing historical comparisons.
+
+---
+
+## 14. Generated Calendar → DimDate
 
 ### Target Grain
 
@@ -739,15 +733,95 @@ One row per calendar date.
 
 ### Business Purpose
 
-Provides a standardized calendar dimension for time-based analysis
-across sales, inventory, weather, and holiday data.
+Provides a standardized calendar dimension for time-based analysis across sales, inventory, weather, and holiday data.
 
 ### Date Range
 
-The initial dimension will cover:
+The initial dimension covers:
 
 ```text
 2013-01-01 through 2016-05-31
+```
 
+### Proposed Calendar Attributes
 
+The date dimension can provide standard reporting attributes, such as:
 
+- Calendar date
+- Calendar year
+- Calendar quarter
+- Calendar month
+- Month name
+- Day of month
+- Day of week
+- Day name
+- Week of year
+- Weekend indicator
+
+Additional fiscal-calendar attributes can be introduced when required by business reporting needs.
+
+---
+
+## 15. Model Design Principles
+
+The source-to-target mappings follow these design principles:
+
+1. **Preserve business grain:** Each fact table represents a clearly defined business event or snapshot.
+2. **Separate business processes:** Orders, order lines, invoices, invoice lines, and inventory movements represent different processes and should not be combined into a single fact without a clear business requirement.
+3. **Retain source identifiers:** Source business keys are preserved to support traceability and reconciliation.
+4. **Use surrogate keys where appropriate:** Dimensions can use surrogate keys to support dimensional relationships and future historical tracking.
+5. **Keep source and derived attributes distinguishable:** Derived measures and classifications should have documented transformation rules.
+6. **Respect optional relationships:** Nullable source relationships should not be treated as mandatory.
+7. **Preserve useful source attributes:** Fields should be excluded based on analytical requirements rather than simply because they are not used in the initial report.
+8. **Support historical analysis:** System-versioned source tables provide opportunities for future Slowly Changing Dimension Type 2 implementations.
+9. **Validate before implementation:** Final mappings, data types, keys, and transformation rules should be checked against the actual source schema and target notebook logic.
+
+---
+
+## 16. Implementation Scope
+
+The following distinction keeps the analytical design documentation aligned with the current project implementation.
+
+### Implemented Gold Model
+
+| Gold Table | Purpose |
+|---|---|
+| `FactSales` | Sales analysis at order-line grain |
+| `DimDate` | Calendar-based analysis |
+| `DimCustomer` | Customer-level analysis |
+| `AggDailySales` | Daily sales aggregation |
+
+### Additional Analytical Model Extensions
+
+The following tables are documented as proposed extensions to the broader analytical model:
+
+- `FactInvoiceLine`
+- `FactInvoice`
+- `FactOrder`
+- `FactOrderLine`
+- `DimProduct`
+- `FactInventorySnapshot`
+- `FactInventoryTransaction`
+- `DimTransactionType`
+- `DimGeography`
+- `DimWeather`
+- `DimHoliday`
+
+These mappings provide a design reference for extending the platform's analytical capabilities. They are not represented as completed Gold tables in the current implementation.
+
+---
+
+## 17. Summary
+
+This source-to-target mapping document establishes a structured approach to transforming operational retail data and external contextual data into an analytical model.
+
+It documents:
+
+- Business grain and purpose for proposed fact and dimension tables
+- Source-to-target column mappings
+- Derived measures and business classifications
+- Source fields intentionally excluded from initial designs
+- Important source-data findings and relationship considerations
+- Design principles for dimensional modeling and future extensions
+
+The implemented Gold model provides the current analytical foundation, while the additional mappings document a broader model that can support future sales, order, product, inventory, geographic, weather, and holiday analysis.
