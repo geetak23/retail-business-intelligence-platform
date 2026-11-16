@@ -1,0 +1,30 @@
+{
+    "name": "DS_HTTP_Source_Holidays",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_source_http_holiday",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "CountryCode": {
+                "type": "string"
+            },
+            "Year": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "HttpServerLocation",
+                "relativeUrl": {
+                    "value": "@concat(\n  'api/v3/PublicHolidays/',\n  dataset().Year,\n  '/',\n  dataset().CountryCode\n)",
+                    "type": "Expression"
+                }
+            }
+        },
+        "schema": {}
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

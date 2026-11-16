@@ -1,0 +1,11 @@
+{
+    "name": "LS_ADLS_Retail_bi_dev",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "annotations": [],
+        "type": "AzureBlobFS",
+        "typeProperties": {
+            "url": "https://stretailbidevgk01.dfs.core.windows.net/"
+        }
+    }
+}

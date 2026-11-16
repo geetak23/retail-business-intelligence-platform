@@ -1,0 +1,19 @@
+{
+    "name": "DS_HTTP_Historical_Weather",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_HTTP_OpenMeteo_Historical",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "HttpServerLocation",
+                "relativeUrl": "v1/archive?latitude=32.794376&longitude=-96.8215&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/Chicago&start_date=2025-01-01&end_date=2025-01-05"
+            }
+        },
+        "schema": {}
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

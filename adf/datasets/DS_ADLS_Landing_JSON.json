@@ -1,0 +1,35 @@
+{
+    "name": "DS_ADLS_Landing_JSON",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_ADLS_Retail_bi_dev",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "FolderPath": {
+                "type": "string"
+            },
+            "FileName": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "fileName": {
+                    "value": "@dataset().FileName",
+                    "type": "Expression"
+                },
+                "folderPath": {
+                    "value": "@dataset().FolderPath",
+                    "type": "Expression"
+                },
+                "fileSystem": "retail-data"
+            }
+        },
+        "schema": {}
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

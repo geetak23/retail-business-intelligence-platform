@@ -1,0 +1,65 @@
+{
+    "name": "pl_ingest_holiday",
+    "properties": {
+        "activities": [
+            {
+                "name": "Copy_Holidays_To_Landing",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                            "type": "HttpReadSettings",
+                            "requestMethod": "GET"
+                        },
+                        "formatSettings": {
+                            "type": "JsonReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "JsonSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "JsonWriteSettings"
+                        }
+                    },
+                    "enableStaging": false
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_HTTP_Source_Holidays",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "CountryCode": "US",
+                            "Year": "2025"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_ADLS_Landing_JSON",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "FolderPath": "landing/holiday",
+                            "FileName": "holidays.json"
+                        }
+                    }
+                ]
+            }
+        ],
+        "annotations": [],
+        "lastPublishTime": "2026-09-18T03:54:52Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

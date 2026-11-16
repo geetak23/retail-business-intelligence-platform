@@ -1,0 +1,220 @@
+{
+    "name": "pl_ingest_wwi_orderlines",
+    "properties": {
+        "activities": [
+            {
+                "name": "Copy data orderlines to adls",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "SqlServerSource",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "quoteAllText": true,
+                            "fileExtension": ".txt"
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "mappings": [
+                            {
+                                "source": {
+                                    "name": "OrderLineID",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 1
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "OrderID",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 2
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "StockItemID",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 3
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Description",
+                                    "type": "String",
+                                    "physicalType": "nvarchar"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 4
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "PackageTypeID",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 5
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "Quantity",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 6
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "UnitPrice",
+                                    "type": "Decimal",
+                                    "physicalType": "decimal",
+                                    "scale": 2,
+                                    "precision": 18
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 7
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "TaxRate",
+                                    "type": "Decimal",
+                                    "physicalType": "decimal",
+                                    "scale": 3,
+                                    "precision": 18
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 8
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "PickedQuantity",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 9
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "PickingCompletedWhen",
+                                    "type": "DateTime",
+                                    "physicalType": "datetime2"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 10
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "LastEditedBy",
+                                    "type": "Int32",
+                                    "physicalType": "int"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 11
+                                }
+                            },
+                            {
+                                "source": {
+                                    "name": "LastEditedWhen",
+                                    "type": "DateTime",
+                                    "physicalType": "datetime2"
+                                },
+                                "sink": {
+                                    "type": "String",
+                                    "physicalType": "String",
+                                    "ordinal": 12
+                                }
+                            }
+                        ],
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": true,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_SQL_WWI_Source",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SourceDB": "sales",
+                            "SourceTable": "orderlines"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_ADLS_landing_wwi",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "FolderName": "landing/wwi/orderlines",
+                            "FileName": "orderlines.csv"
+                        }
+                    }
+                ]
+            }
+        ],
+        "annotations": [],
+        "lastPublishTime": "2026-09-16T17:52:57Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
